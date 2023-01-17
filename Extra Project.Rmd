@@ -1,0 +1,360 @@
+---
+title: "Extra Project"
+author: "Yunxuan"
+date: "2022-12-09"
+output: pdf_document
+---
+
+
+```{r, echo = TRUE}
+Cars <- read.table("cars.txt", head = T)
+nrow(Cars)
+Cars
+```
+
+1. Partition the data set into two sets a training data and a test data. Remove every fifth observation from the data for use as a test sample.
+
+There are 32 observations. So the set test will contain 6 observations and the set train will contain 32-6=26 observations.
+```{r, echo = TRUE}
+c<- 1:nrow(Cars)
+train <- Cars[!c%%5==0,]
+test <- Cars[c%%5==0,]
+nrow(train)
+nrow(test)
+```
+
+2. Perform an exploratory analysis. Comment on your findings.
+```{r, echo = TRUE}
+library(ggplot2)
+library(cowplot)
+library(ISLR)
+
+cars <- train[, -c(1,3,9,10)]
+summary(cars)
+```
+```{r, echo = TRUE}
+pairs(cars[,c("mpg","disp","hp","drat","wt","qsec","gear","carb")],col="darkgreen",pch=20)
+```
+```{r, echo = TRUE}
+cor(cars[,c("mpg","disp","hp","drat","wt","qsec","gear","carb")])
+```
+We see that predictors such as mpg, disp and hp has a relationship between each other, as the graph shows.
+
+```{r, echo = TRUE}
+hist(train$mpg)
+```
+```{r, echo = TRUE}
+summary(train$mpg)
+```
+```{r, echo = TRUE}
+boxplot(train$mpg)
+```
+
+For mpg, most values are in the interval [15,28,22,80]. There is no outlier. The values are comparatively concentrated.
+
+```{r, echo = TRUE}
+hist(train$disp)
+```
+```{r, echo = TRUE}
+summary(train$disp)
+```
+```{r, echo = TRUE}
+boxplot(train$disp)
+```
+
+For disp, most values are in the interval [120.5,303.2]. There is no outlier. The values are comparatively scattered.
+
+```{r, echo = TRUE}
+summary(train$cyl)
+```
+
+For cyl, the number of getting 6 cyl is the least while the number of getting 8 cyl is the most.
+
+```{r, echo = TRUE}
+hist(train$hp)
+```
+```{r, echo = TRUE}
+summary(train$hp)
+```
+```{r, echo = TRUE}
+boxplot(train$hp)
+```
+For hp, most values are in the interval [95.5,180]. There is an outlier, but we should keep it. The values are comparatively scattered.
+```{r, echo = TRUE}
+hist(train$drat)
+```
+```{r, echo = TRUE}
+summary(train$drat)
+```
+```{r, echo = TRUE}
+boxplot(train$drat)
+```
+
+For drat, most values are in the interval [3.098,3.920]. There is no outlier. The values are comparatively concentrated.
+```{r, echo = TRUE}
+hist(train$wt)
+```
+```{r, echo = TRUE}
+summary(train$wt)
+```
+```{r, echo = TRUE}
+boxplot(train$wt)
+```
+For wt, most values are in the interval [2.5,3.6]. There are two outliers, but we should keep them.
+```{r, echo = TRUE}
+hist(train$qsec)
+```
+```{r, echo = TRUE}
+summary(train$qsec)
+```
+```{r, echo = TRUE}
+boxplot(train$qsec)
+```
+
+
+For qsec, most values are in the interval [17,19]. There is an outlier, but we should keep it. The values are comparatively concentrated.
+
+```{r, echo = TRUE}
+summary(train$vs)
+```
+The number of being 0 is a little bit more than number being 1 for vs.
+
+
+```{r, echo = TRUE}
+summary(train$am)
+```
+The number of being 0 is a little bit more than number being 1 for am.
+
+```{r, echo = TRUE}
+hist(train$gear)
+```
+```{r, echo = TRUE}
+summary(train$gear)
+```
+```{r, echo = TRUE}
+boxplot(train$gear)
+```
+
+For gear, most values are in the interval [3,4]. There is no outlier.
+```{r, echo = TRUE}
+hist(train$carb)
+```
+```{r, echo = TRUE}
+summary(train$carb)
+```
+```{r, echo = TRUE}
+boxplot(train$carb)
+```
+
+For carb, most values are in the interval [2,4]. There is an outlier, but we should keep it. The distribution is comparatively concentrated.
+
+
+
+3. Perform a regression analysis and come up with the best multiple linear regression model that explains the response mpg in terms of the rest (except name). Comment on your findings and explain the methods and strategies that you employed in order to select the model you picked.  Things you have to include in this part:
+- Model diagnostics
+- Justification on whether it is necessary or not to do any transformation on the response or the predictors
+- Variable selection
+
+```{r, echo = TRUE}
+lmod1 <- lm(mpg ~ factor(cyl)+disp+hp+drat+wt+qsec+factor(vs)+factor(am)+gear+carb, data=train)
+summary(lmod1)
+```
+
+Diagnostic Test:
+1. Check Error Assumptions
+1i. Check Constant Variance.
+```{r, echo = TRUE}
+require(lmtest)
+require(MASS)
+require(ggplot2)
+plot(fitted(lmod1),residuals(lmod1),xlab='Fitted',ylab='Residuals')
+abline(h=0, col="blue")
+```
+```{r, echo = TRUE}
+car::ncvTest(lmod1) # Null hypothesis = constant error variance
+```
+
+By using the graph we find that there is no clear pattern of variance change along observations, so we then use a heteroscedasticity test. Thus, it is homoscedasticity (constant symmetrical variation).
+
+1ii. Check Normality.
+```{r, echo = TRUE}
+qqnorm(residuals(lmod1), ylab = 'Residuals', main = '')
+qqline(residuals(lmod1))
+```
+```{r, echo = TRUE}
+shapiro.test(residuals(lmod1))
+```
+Since p-value is 0.457 which is greater than 0.05 and 0.1, we say it fails to reject the null hypothesis that the random errors are normally distributed. Thus, we conclude that the random errors follow a normal distribution.
+
+1iii. Uncorrelated Errors
+```{r, echo = TRUE}
+dwtest(mpg ~ factor(cyl)+disp+hp+drat+wt+qsec+factor(vs)+factor(am)+gear+carb, data=train)
+```
+Since the p-value is 0.05224 which is greater than 0.05, we fail to reject the hypothesis of uncorrelated errors.
+
+2. Check Unusual Observations
+2i. High Leverage Points
+```{r, echo = TRUE}
+lev=hatvalues(lmod1)
+n<-length(lev)
+p<-dim(model.matrix(lmod1))[2]
+dat=data.frame(index=seq(n),leverage=lev)
+high.lev<-dat[which(dat$lev>2*(p)/n),"index"];high.lev
+```
+
+2ii. Outliers
+```{r, echo = TRUE}
+r=rstandard(lmod1)
+r.a<- abs(r)
+outliersm<-which(abs(r)>=3); outliersm
+```
+
+2iii. Influential Observations.
+```{r, echo = TRUE}
+d=cooks.distance(lmod1)
+dat3=data.frame(index=seq(length(r)),distance=d)
+influ<-dat3[which(dat3$distance>4/n),"index"];influ
+```
+Therefore, there are three influential observations. There is no outlier or high leverage point.
+
+Diagnostic Summary(Unusual observations in a single plot)
+```{r, echo = TRUE}
+par(mfrow = c(2,2))
+plot(lmod1,c(1,2,4,5))
+```
+
+Now, we check whether the response needs a Box-Cox transformation.
+```{r, echo = TRUE}
+par(mfrow=c(1,2),mar=c(2,2,0.8,0.5))
+boxcox(lmod1,plotit=TRUE)
+bc = boxcox(lmod1,plotit=TRUE)
+lambda <- bc$x[which.max(bc$y)]
+lambda1 <- round(lambda, 1)
+lambda1
+```
+Since 1 is not in the confidence interval, we need to do a Box-Cox transformation.
+Take log transformation on the response
+```{r, echo = TRUE}
+fit <- lm(log(mpg) ~ factor(cyl)+disp+hp+drat+wt+qsec+factor(vs)+factor(am)+gear+carb, data=train)
+summary(fit)
+```
+
+
+AIC and BIC:
+
+```{r, echo = TRUE}
+require(leaps)
+models<- regsubsets(log(mpg) ~ cyl+disp+hp+drat+wt+qsec+vs+am+gear+carb, data=train, nvmax= NULL)
+rs<- summary(models)
+rs$which 
+```
+```{r, echo = TRUE}
+n <- dim(train)[1]
+AIC <- n*log(rs$rss/n)+2*seq(2,12,1)
+BIC <- n*log(rs$rss/n)+log(n)*seq(2,12,1)
+par(mar = c(2,2,1.2,0.5),mfrow=c(1,2))
+plot(AIC~I(1:11),main="AIC",xlab = "# predictors", pch = 20, col = "blue",cex=0.7)
+plot(BIC~I(1:11),main="BIC",xlab = "# predictors", pch = 20, col = "blue",cex=0.7)
+```
+```{r, echo = TRUE}
+which.min(AIC)
+which.min(BIC)
+```
+Thus, we attain minimum AIC at 3 and BIC at 2 predictors.
+
+```{r, echo = TRUE}
+### best model according to AIC
+AICnames<-names(which(rs$which[which.min(AIC),])=="TRUE" )[-1]
+train.formulaAIC <- as.formula(paste("log(mpg) ~", paste(AICnames, collapse = " + ")))
+AIC.model<-lm(train.formulaAIC, data =train)
+summary(AIC.model)
+```
+```{r, echo = TRUE}
+### best model according to BIC
+BICnames<-names(which(rs$which[which.min(BIC),])=="TRUE" )[-1]
+train.formulaBIC <- as.formula(paste("log(mpg) ~", paste(BICnames, collapse = " + ")))
+BIC.model<-lm(train.formulaBIC, data =train)
+summary(BIC.model)
+```
+
+Ridge Regression
+```{r, echo = TRUE}
+require(glmnet)
+```
+
+```{r, echo=TRUE}
+library(glmnet)
+library(dplyr)
+library(tidyr)
+Train = na.omit(train)
+x = scale(model.matrix(log(mpg)~ cyl+disp+hp+drat+wt+qsec+vs+am+gear+carb, train)[,-1])
+y = log(Train$mpg)
+grid = 10^seq(10, -2, length = 100)
+ridge_mod = glmnet(x, y, alpha = 0, lambda = grid)
+```
+
+```{r, echo = TRUE}
+set.seed(1) #we set a random seed first so our results will be reproducible.
+cv.out.ridge=cv.glmnet(x, y, alpha = 0)
+plot(cv.out.ridge)
+abline(v = log(cv.out.ridge$lambda.min), col="red", lwd=3, lty=2)
+```
+```{r, echo=TRUE}
+bestlam = cv.out.ridge$lambda.min
+bestlam
+```
+
+```{r, echo = TRUE}
+out = glmnet(x,y,alpha=0)
+predict(out,type="coefficients",s=bestlam)[1:11,]
+best_model <- glmnet(x,y, alpha = 0, lambda = bestlam)
+```
+
+Now we have log full model, AIC model, BIC model, and ridge model.
+
+4. point estimation:
+```{r,echo = TRUE}
+test1_point <- predict(fit, newdata = test, interval = "confidence")
+test1_point
+```
+```{r,echo = TRUE}
+test2_point <- predict(AIC.model, newdata = test, interval = "confidence")
+test2_point
+```
+```{r,echo = TRUE}
+test3_point <- predict(BIC.model, newdata = test, interval = "confidence")
+test3_point
+```
+```{r,echo = TRUE}
+test4_point <- predict(best_model, s = bestlam, newx = scale(as.matrix(test[,2:11])))
+test4_point
+```
+Since models are log value, we need to turn them back to y.
+```{r, echo = TRUE}
+t1pt <- exp(test1_point)
+t1pt
+t2pt <- exp(test2_point)
+t2pt
+t3pt <- exp(test3_point)
+t3pt
+t4pt <- exp(test4_point)
+t4pt
+```
+
+```{r, echo = TRUE}
+SSR_t1 = sum((t1pt[,1]-test$mpg)^2)
+SSR_t2 = sum((t2pt[,1]-test$mpg)^2)
+SSR_t3 = sum((t3pt[,1]-test$mpg)^2)
+SSR_t4 = sum((t4pt[,1]-test$mpg)^2)
+MSE_t1 = SSR_t1/(dim(test)[1]-length(coef(fit)))
+MSE_t2 = SSR_t2/(dim(test)[1]-length(coef(AIC.model)))
+MSE_t3 = SSR_t3/(dim(test)[1]-length(coef(BIC.model)))
+MSE_t4 = SSR_t4/(dim(test)[1]-length(coef(best_model)))
+```
+```{r, echo = TRUE}
+abs(MSE_t1)
+abs(MSE_t2)
+abs(MSE_t3)
+abs(MSE_t4)
+```
+Full model has the least MSE, so full model is the best model.
